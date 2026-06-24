@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC Kommandozentrale</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: #0f0f0f;
+    color: #e8e8e8;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: #0f0f0f;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .logo span { color: #c8a96e; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .filter-btn:hover { border-color: #555; color: #ccc; }
+  .filter-btn.active { background: #c8a96e; border-color: #c8a96e; color: #000; font-weight: 600; }
+
+  .search-input {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: #e8e8e8;
+    font-size: 13px;
+    font-family: inherit;
+    width: 180px;
+    outline: none;
+  }
+  .search-input:focus { border-color: #c8a96e; }
+  .search-input::placeholder { color: #555; }
+
+  main {
+    padding: 20px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #555;
+    margin: 24px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+  .card:hover { border-color: #333; }
+  .card.hidden { display: none; }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .card-repo {
+    font-size: 11px;
+    color: #555;
+    margin-top: 2px;
+    font-family: 'SF Mono', 'Fira Mono', monospace;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-live { background: #0d2b1a; color: #4ade80; }
+  .status-wip  { background: #2b2000; color: #f59e0b; }
+  .status-pause{ background: #1e1e1e; color: #666; }
+  .status-intern{ background: #1a1a2e; color: #818cf8; }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .card-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid #2a2a2a;
+    background: #1c1c1c;
+    color: #aaa;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .link-btn:hover { background: #242424; border-color: #444; color: #fff; }
+  .link-btn.github { border-color: #2d333b; }
+  .link-btn.github:hover { border-color: #58a6ff; color: #58a6ff; }
+  .link-btn.supabase:hover { border-color: #3ecf8e; color: #3ecf8e; }
+  .link-btn.stripe:hover { border-color: #7c3aed; color: #a78bfa; }
+  .link-btn.live:hover { border-color: #c8a96e; color: #c8a96e; }
+  .link-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #1e1e1e;
+    color: #666;
+    border: 1px solid #2a2a2a;
+  }
+
+  .brand-rc    { border-left: 3px solid #c8a96e; }
+  .brand-eiswerk{ border-left: 3px solid #1a6b8a; }
+  .brand-gtue  { border-left: 3px solid #E3001B; }
+  .brand-baudesk{ border-left: 3px solid #2563eb; }
+  .brand-betriebspass{ border-left: 3px solid #059669; }
+  .brand-autoai{ border-left: 3px solid #7c3aed; }
+  .brand-intern{ border-left: 3px solid #444; }
+
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    padding: 12px 0;
+    margin-bottom: 4px;
+  }
+  .stat { font-size: 12px; color: #555; }
+  .stat strong { color: #888; }
+
+  @media (max-width: 600px) {
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .header-right { width: 100%; flex-direction: column; align-items: flex-start; }
+    .search-input { width: 100%; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">RC <span>Kommandozentrale</span></div>
+  <div class="header-right">
+    <input class="search-input" type="text" placeholder="Projekt suchen…" id="searchInput" oninput="filterCards()">
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" onclick="setFilter('all', this)">Alle</button>
+      <button class="filter-btn" onclick="setFilter('rc', this)">RC</button>
+      <button class="filter-btn" onclick="setFilter('eiswerk', this)">Eiswerk</button>
+      <button class="filter-btn" onclick="setFilter('gtue', this)">GTÜ</button>
+      <button class="filter-btn" onclick="setFilter('baudesk', this)">BauDesk</button>
+      <button class="filter-btn" onclick="setFilter('betriebspass', this)">Betriebspass</button>
+      <button class="filter-btn" onclick="setFilter('autoai', this)">AutoAI</button>
+      <button class="filter-btn" onclick="setFilter('intern', this)">Intern</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<div class="stats-bar">
+  <div class="stat"><strong id="visibleCount">28</strong> Projekte</div>
+  <div class="stat">🟢 <strong>Live</strong> = GitHub Pages aktiv</div>
+  <div class="stat">🟡 <strong>In Arbeit</strong> = noch nicht fertig</div>
+  <div class="stat">🔵 <strong>Intern</strong> = kein Public Tool</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ RC TOOLS -->
+<div class="section-label" data-brand="rc">🔧 Riedel Classics — Tools</div>
+<div class="grid" id="grid-rc-tools">
+
+  <div class="card brand-rc" data-brand="rc" data-name="wertdossier klassiker">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Wertdossier</div>
+        <div class="card-repo">rc_klassiker</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Supabase</span><span class="tag">Stripe €4.99</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/rc_klassiker" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/rc_klassiker" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="crash guide unfall schaden">
+    <div class="card-header">
+      <div>
+        <div class="card-title">CrashGuide</div>
+        <div class="card-repo">auto_guide_crash</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Stripe €3.99/€4.99</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/auto_guide_crash" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/auto_guide_crash" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="autoguide ai fahrzeug">
+    <div class="card-header">
+      <div>
+        <div class="card-title">AutoGuide AI</div>
+        <div class="card-repo">autoguide-ai</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/autoguide-ai" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/autoguide-ai" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="doku dokumentation restaurierung">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Doku App</div>
+        <div class="card-repo">Riedel_Classic_Doku</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Supabase</span><span class="tag">Fotos</span><span class="tag">Kapitel</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Riedel_Classic_Doku" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Riedel_Classic_Doku" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="foto triage bilder sortierung">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Foto-Triage</div>
+        <div class="card-repo">foto_triage</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">JSZip</span><span class="tag">Supabase</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/foto_triage" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/foto_triage" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="unfallkalkulation schaden kalkulation">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Unfallkalkulation</div>
+        <div class="card-repo">RC_Unfallkalkulation</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Kalkulation</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/RC_Unfallkalkulation" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/RC_Unfallkalkulation" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ kein Supabase</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="unfallkalkulation demo">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Unfallkalkulation Demo</div>
+        <div class="card-repo">RC_unfallkalkulation_demo</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Demo</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/RC_unfallkalkulation_demo" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/RC_unfallkalkulation_demo" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ kein Supabase</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="kasko versicherung">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Kasko</div>
+        <div class="card-repo">Riedel-Kasko</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Versicherung</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Riedel-Kasko" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Riedel-Kasko" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ ?</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="marktplatz ersatzteile oldtimer">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Marktplatz</div>
+        <div class="card-repo">Riedel-Oldtimer-marktplatz</div>
+      </div>
+      <div class="status status-pause"><div class="dot"></div>Pausiert</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Ersatzteile</span><span class="tag">Kommission</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Riedel-Oldtimer-marktplatz" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Riedel-Oldtimer-marktplatz" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ ?</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ RC INTERN -->
+<div class="section-label" data-brand="rc">🏠 Riedel Classics — Intern</div>
+<div class="grid" id="grid-rc-intern">
+
+  <div class="card brand-rc" data-brand="rc" data-name="steuerung rc restore werkstatt">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Steuerung</div>
+        <div class="card-repo">RC-Restore</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Werkstatt-Tool</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/RC-Restore" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/RC-Restore" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="knowhow wissen datenbank">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC KnowHow</div>
+        <div class="card-repo">RC-KnowHow</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Wissensdatenbank</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/RC-KnowHow" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/RC-KnowHow" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="cms website generator">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC CMS</div>
+        <div class="card-repo">Riedel-CMS</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Website Generator</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Riedel-CMS" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Riedel-CMS" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="import bewertungen klassiker">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Import Bewertungen</div>
+        <div class="card-repo">import_Classikbewertungen</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Daten-Import</span><span class="tag">Supabase</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/import_Classikbewertungen" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/import_Classikbewertungen" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="dashboard dev entwickler">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Dev Dashboard</div>
+        <div class="card-repo">RC-dashboard</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Projekt-Management</span><span class="tag">Supabase</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/RC-dashboard" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/RC-dashboard" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="tools deploy utility">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Tools (Deploy)</div>
+        <div class="card-repo">rc-tools</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Deploy Utility</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/rc-tools" target="_blank">⬡ GitHub</a>
+      <span class="link-btn live disabled">↗ kein Pages</span>
+      <span class="link-btn supabase disabled">◈ kein Supabase</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="magic login passwort auth">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Magic Login</div>
+        <div class="card-repo">magic-login</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Auth / Login</span><span class="tag">Utility</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/magic-login" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/magic-login" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-rc" data-brand="rc" data-name="handbuch dokumentation">
+    <div class="card-header">
+      <div>
+        <div class="card-title">RC Handbuch</div>
+        <div class="card-repo">Handbuch / Handbuch1</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Dokumentation</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Handbuch" target="_blank">⬡ GitHub</a>
+      <span class="link-btn live disabled">↗ ?</span>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ EISWERK -->
+<div class="section-label" data-brand="eiswerk">🧊 Oldtimer Eiswerk</div>
+<div class="grid" id="grid-eiswerk">
+
+  <div class="card brand-eiswerk" data-brand="eiswerk" data-name="eiswerk check trockeneis strahlen">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Eiswerk Check</div>
+        <div class="card-repo">oldtimer-eiswerk</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Supabase</span><span class="tag">WhatsApp CTA</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/oldtimer-eiswerk" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/oldtimer-eiswerk" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-eiswerk" data-brand="eiswerk" data-name="eiswerk admin dashboard termine">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Eiswerk Admin</div>
+        <div class="card-repo">eiswerk_dashboard</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Admin Panel</span><span class="tag">Termine</span><span class="tag">Supabase</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/eiswerk_dashboard" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/eiswerk_dashboard" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ GTÜ -->
+<div class="section-label" data-brand="gtue">🔴 GTÜ — Steffen Höhn</div>
+<div class="grid" id="grid-gtue">
+
+  <div class="card brand-gtue" data-brand="gtue" data-name="gtue landing hu vorab check kennzeichen">
+    <div class="card-header">
+      <div>
+        <div class="card-title">GTÜ Landing</div>
+        <div class="card-repo">gtue-hu-vorab-check</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Supabase</span><span class="tag">Kennzeichen</span><span class="tag">Lead Gen</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/gtue-hu-vorab-check" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/gtue-hu-vorab-check" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-gtue" data-brand="gtue" data-name="gtue tool hu check fahrzeug">
+    <div class="card-header">
+      <div>
+        <div class="card-title">GTÜ HU-Check Tool</div>
+        <div class="card-repo">auto_check_hu</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Supabase</span><span class="tag">WhatsApp</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/auto_check_hu" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/auto_check_hu" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-gtue" data-brand="gtue" data-name="gtue dashboard partner leads">
+    <div class="card-header">
+      <div>
+        <div class="card-title">GTÜ Partner Dashboard</div>
+        <div class="card-repo">gtue-hu-dashboard</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Supabase</span><span class="tag">hu_leads</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/gtue-hu-dashboard" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/gtue-hu-dashboard" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BAUDESK -->
+<div class="section-label" data-brand="baudesk">🏗️ BauDesk — MUSA Elektrotechnik</div>
+<div class="grid" id="grid-baudesk">
+
+  <div class="card brand-baudesk" data-brand="baudesk" data-name="baudesk app feldberichte musa">
+    <div class="card-header">
+      <div>
+        <div class="card-title">BauDesk App</div>
+        <div class="card-repo">musa-baudesk</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Supabase</span><span class="tag">Feldberichte</span><span class="tag">90 MA</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/musa-baudesk" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/musa-baudesk" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+  <div class="card brand-baudesk" data-brand="baudesk" data-name="baudesk landing page">
+    <div class="card-header">
+      <div>
+        <div class="card-title">BauDesk Landing</div>
+        <div class="card-repo">baudesk</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Marketing</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/baudesk" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/baudesk" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ kein Supabase</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BETRIEBSPASS -->
+<div class="section-label" data-brand="betriebspass">🛡️ Betriebspass</div>
+<div class="grid" id="grid-betriebspass">
+
+  <div class="card brand-betriebspass" data-brand="betriebspass" data-name="betriebspass app inventar notizen verträge">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Betriebspass App</div>
+        <div class="card-repo">betriebspass</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Supabase</span><span class="tag">Stripe €39</span><span class="tag">Testament</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/betriebspass" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://betriebspass.de" target="_blank">↗ betriebspass.de</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <a class="link-btn stripe" href="https://dashboard.stripe.com" target="_blank">◇ Stripe</a>
+    </div>
+  </div>
+
+  <div class="card brand-betriebspass" data-brand="betriebspass" data-name="notfallprogramm uri betriebspass persönlich">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Betriebspass Uri</div>
+        <div class="card-repo">Notfallprogramm</div>
+      </div>
+      <div class="status status-intern"><div class="dot"></div>Intern</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Persönlich</span><span class="tag">Notfall</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Notfallprogramm" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Notfallprogramm" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ AUTOAI -->
+<div class="section-label" data-brand="autoai">🤖 AutoAI Tools</div>
+<div class="grid" id="grid-autoai">
+
+  <div class="card brand-autoai" data-brand="autoai" data-name="autoai tools händler bewertung inserat">
+    <div class="card-header">
+      <div>
+        <div class="card-title">AutoAI Tools</div>
+        <div class="card-repo">AutoAITools-</div>
+      </div>
+      <div class="status status-wip"><div class="dot"></div>In Arbeit</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Supabase</span><span class="tag">€29-99/mo</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/AutoAITools-" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/AutoAITools-" target="_blank">↗ Live</a>
+      <a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>
+      <a class="link-btn stripe" href="https://dashboard.stripe.com" target="_blank">◇ Stripe</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ INTERN -->
+<div class="section-label" data-brand="intern">🔧 Sonstige / Intern</div>
+<div class="grid" id="grid-intern">
+
+  <div class="card brand-intern" data-brand="intern" data-name="lingua trainer sprache englisch spanisch">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Lingua Trainer</div>
+        <div class="card-repo">Lingua_trainer</div>
+      </div>
+      <div class="status status-live"><div class="dot"></div>Live</div>
+    </div>
+    <div class="card-tags">
+      <span class="tag">Claude AI</span><span class="tag">Sprachen</span>
+    </div>
+    <div class="card-links">
+      <a class="link-btn github" href="https://github.com/uri2503/Lingua_trainer" target="_blank">⬡ GitHub</a>
+      <a class="link-btn live" href="https://uri2503.github.io/Lingua_trainer" target="_blank">↗ Live</a>
+      <span class="link-btn supabase disabled">◈ ?</span>
+      <span class="link-btn stripe disabled">◇ kein Stripe</span>
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<script>
+var activeFilter = 'all';
+
+function setFilter(brand, btn) {
+  activeFilter = brand;
+  var btns = document.querySelectorAll('.filter-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.remove('active');
+  }
+  btn.classList.add('active');
+  filterCards();
+}
+
+function filterCards() {
+  var search = document.getElementById('searchInput').value.toLowerCase();
+  var cards = document.querySelectorAll('.card');
+  var visible = 0;
+
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var brand = card.getAttribute('data-brand');
+    var name = card.getAttribute('data-name') || '';
+    var title = card.querySelector('.card-title') ? card.querySelector('.card-title').innerText.toLowerCase() : '';
+    var repo = card.querySelector('.card-repo') ? card.querySelector('.card-repo').innerText.toLowerCase() : '';
+
+    var matchBrand = (activeFilter === 'all') || (brand === activeFilter);
+    var matchSearch = !search || name.indexOf(search) > -1 || title.indexOf(search) > -1 || repo.indexOf(search) > -1;
+
+    if (matchBrand && matchSearch) {
+      card.classList.remove('hidden');
+      visible++;
+    } else {
+      card.classList.add('hidden');
+    }
+  }
+
+  // Section labels visibility
+  var sections = document.querySelectorAll('.section-label');
+  for (var j = 0; j < sections.length; j++) {
+    var sec = sections[j];
+    var secBrand = sec.getAttribute('data-brand');
+    if (activeFilter === 'all' || secBrand === activeFilter) {
+      sec.style.display = '';
+    } else {
+      sec.style.display = 'none';
+    }
+  }
+
+  document.getElementById('visibleCount').innerText = visible;
+}
+</script>
+
+</body>
+</html>
