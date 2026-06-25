@@ -127,7 +127,7 @@ function renderCard(p) {
     ? '<a class="link-btn live" href="' + p.live_url + '" target="_blank">↗ Live</a>'
     : '<span class="link-btn disabled">↗ kein Pages</span>';
   var supaBtn = p.hat_supabase
-    ? '<a class="link-btn supabase" href="https://supabase.com/dashboard/project/' + SUPABASE_URL.split('.')[0].split('//')[1] + '/editor" target="_blank">◈ Supabase</a>'
+    ? '<a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>'
     : '<span class="link-btn disabled">◈ kein Supabase</span>';
   var stripeBtn = p.hat_stripe
     ? '<a class="link-btn stripe" href="https://dashboard.stripe.com" target="_blank">◇ Stripe ' + (p.stripe_info ? p.stripe_info : '') + '</a>'
@@ -209,8 +209,8 @@ function loadProjekte() {
       'Authorization': 'Bearer ' + SUPABASE_KEY
     }
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
+  .then(function(r) { return r.json().then(function(d){ return {ok: r.ok, status: r.status, data: d}; }); })
+  .then(function(res) { var data = res.data; if(!res.ok){ document.getElementById("container").innerHTML = "<div class=\"error-msg\">API Fehler " + res.status + ": " + JSON.stringify(data) + "</div>"; return; }
     if (!Array.isArray(data) || data.length === 0) {
       document.getElementById('container').innerHTML = '<div class="error-msg">Keine Projekte gefunden.</div>';
       return;
