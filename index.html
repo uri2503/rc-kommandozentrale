@@ -113,6 +113,8 @@
   <div id="container"><div class="loading">Projekte werden geladen…</div></div>
 </main>
 
+<datalist id="brand-suggestions"></datalist>
+
 <script>
 var SUPABASE_URL = 'https://ysqzdqazcgyuzdorauiq.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzcXpkcWF6Y2d5dXpkb3JhdWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODM0NzcsImV4cCI6MjA5NTU1OTQ3N30.u5cbSVniUl5Zvlf2rdpnjtvDyKvv9csmPwvdtnEwWzE';
@@ -207,7 +209,7 @@ function renderCard(p) {
       '<div class="edit-row" style="display:flex;gap:8px;margin-bottom:8px;">' +
         '<div style="flex:1">' +
           '<div class="edit-label">🏷 Gruppe / Brand</div>' +
-          '<input class="edit-field" id="brand-'+id+'" value="'+p.brand+'" placeholder="z.B. baeckerei, gtue, rc…" style="padding:5px 8px;">' +
+          '<input class="edit-field" id="brand-'+id+'" value="'+p.brand+'" list="brand-suggestions" placeholder="z.B. baeckerei, gtue, rc…" style="padding:5px 8px;">' +
         '</div>' +
         '<div style="width:100px">' +
           '<div class="edit-label">📊 Status</div>' +
@@ -344,6 +346,18 @@ function renderAll() {
     html += '</div></div>';
   }
   container.innerHTML = html;
+
+  // Datalist mit vorhandenen Brands befüllen
+  var dl = document.getElementById('brand-suggestions');
+  if (dl) {
+    dl.innerHTML = '';
+    for (var d=0; d<orderedBrands.length; d++) {
+      var opt = document.createElement('option');
+      opt.value = orderedBrands[d];
+      dl.appendChild(opt);
+    }
+  }
+
   filterCards();
 }
 
