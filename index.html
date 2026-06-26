@@ -186,9 +186,15 @@ function renderCard(p) {
     // ── Edit Bereich ──
     '<div class="edit-section">' +
 
-      '<div class="edit-row">' +
+      '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">' +
+        '<div style="flex:1">' +
         '<div class="edit-label">📎 Extra Links <span>Label|URL — eine pro Zeile</span></div>' +
         '<textarea class="edit-field" rows="2" id="links-'+id+'" placeholder="Admin|https://...\nDashboard|https://...">'+extraLinksText+'</textarea>' +
+        '</div>' +
+        '<div style="width:64px">' +
+          '<div class="edit-label">⬆ Sort</div>' +
+          '<input type="number" class="edit-field" id="sort-'+id+'" value="'+(p.sort_order||99)+'" style="text-align:center;padding:5px 4px;">' +
+        '</div>' +
       '</div>' +
 
       '<div class="edit-row">' +
@@ -206,8 +212,10 @@ function saveCard(id) {
   var btn = document.getElementById('save-'+id);
   var memoEl = document.getElementById('memo-'+id);
   var linksEl = document.getElementById('links-'+id);
+  var sortEl = document.getElementById('sort-'+id);
 
   var memo = memoEl.value.trim();
+  var sortOrder = sortEl ? parseInt(sortEl.value) || 99 : 99;
 
   // Extra Links parsen: Label|URL
   var extraLinks = [];
@@ -232,7 +240,7 @@ function saveCard(id) {
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify({ memo: memo, extra_links: extraLinks })
+    body: JSON.stringify({ memo: memo, extra_links: extraLinks, sort_order: sortOrder })
   })
   .then(function(r) {
     if (r.ok) {
@@ -243,6 +251,7 @@ function saveCard(id) {
         if (allProjekte[i].id === id) {
           allProjekte[i].memo = memo;
           allProjekte[i].extra_links = extraLinks;
+          allProjekte[i].sort_order = sortOrder;
         }
       }
       setTimeout(function(){ btn.textContent = '💾 Speichern'; btn.className = 'save-btn'; }, 2000);
