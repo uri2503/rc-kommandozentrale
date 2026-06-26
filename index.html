@@ -26,8 +26,9 @@
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 
-  .card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 14px; }
+  .card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 14px; transition: border-color 0.15s; }
   .card.hidden { display: none; }
+  .card:hover { border-color: #2a2a2a; }
   .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
   .card-title { font-size: 15px; font-weight: 600; color: #fff; }
   .card-repo { font-size: 11px; color: #555; margin-top: 2px; font-family: monospace; }
@@ -43,18 +44,33 @@
   .tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #1e1e1e; color: #666; border: 1px solid #2a2a2a; }
 
   .card-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .link-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; text-decoration: none; border: 1px solid #2a2a2a; background: #1c1c1c; color: #aaa; }
+  .link-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; text-decoration: none; border: 1px solid #2a2a2a; background: #1c1c1c; color: #aaa; cursor: pointer; }
   .link-btn.disabled { opacity: 0.3; pointer-events: none; }
   .link-btn:not(.disabled):hover { background: #242424; border-color: #444; color: #fff; }
-  .link-btn.deploy:hover  { border-color: #58a6ff; color: #58a6ff; }
+  .link-btn.deploy:hover   { border-color: #58a6ff; color: #58a6ff; }
   .link-btn.supabase:hover { border-color: #3ecf8e; color: #3ecf8e; }
-  .link-btn.stripe:hover  { border-color: #a78bfa; color: #a78bfa; }
-  .link-btn.live:hover    { border-color: #c8a96e; color: #c8a96e; }
+  .link-btn.stripe:hover   { border-color: #a78bfa; color: #a78bfa; }
+  .link-btn.live:hover     { border-color: #c8a96e; color: #c8a96e; }
+  .link-btn.extra          { border-color: #3a2a3a; color: #c084fc; }
+  .link-btn.extra:hover    { border-color: #f472b6; color: #f472b6; }
 
-  .link-btn.extra:hover { border-color: #f472b6; color: #f472b6; }
+  /* ── Inline Edit Felder ── */
+  .edit-section { margin-top: 10px; border-top: 1px solid #1e1e1e; padding-top: 10px; }
 
-  .card-memo { margin-top: 8px; font-size: 11px; color: #666; line-height: 1.4; padding: 6px 8px; background: #1a1a1a; border-radius: 6px; border-left: 2px solid #333; }
+  .edit-row { margin-bottom: 8px; }
+  .edit-label { font-size: 10px; color: #555; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .edit-label span { color: #444; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 10px; }
 
+  .edit-field { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 6px; color: #ccc; font-size: 12px; font-family: inherit; padding: 6px 8px; resize: none; outline: none; line-height: 1.5; }
+  .edit-field:focus { border-color: #c8a96e; }
+  .edit-field::placeholder { color: #3a3a3a; }
+
+  .save-btn { margin-top: 6px; padding: 4px 10px; border-radius: 5px; border: 1px solid #333; background: #1e1e1e; color: #888; font-size: 11px; cursor: pointer; font-family: inherit; }
+  .save-btn:hover { background: #c8a96e; border-color: #c8a96e; color: #000; font-weight: 600; }
+  .save-btn.saving { color: #f59e0b; border-color: #f59e0b; }
+  .save-btn.saved  { color: #4ade80; border-color: #4ade80; }
+
+  /* ── Brand Colors ── */
   .brand-rc          { border-left: 3px solid #c8a96e; }
   .brand-eiswerk     { border-left: 3px solid #1a6b8a; }
   .brand-gtue        { border-left: 3px solid #E3001B; }
@@ -69,7 +85,6 @@
 
   .loading { text-align: center; padding: 60px; color: #555; font-size: 14px; }
   .error-msg { text-align: center; padding: 40px; color: #e55; font-size: 13px; }
-
   .section-wrap.hidden { display: none; }
 </style>
 </head>
@@ -77,7 +92,7 @@
 
 <header>
   <div class="logo">RC <span>Kommandozentrale</span></div>
-  <div class="filter-bar" id="filterBar">
+  <div class="filter-bar">
     <button class="filter-btn active" onclick="setFilter('all',this)">Alle</button>
     <button class="filter-btn" onclick="setFilter('rc',this)">RC</button>
     <button class="filter-btn" onclick="setFilter('eiswerk',this)">Eiswerk</button>
@@ -100,7 +115,7 @@
 
 <script>
 var SUPABASE_URL = 'https://ysqzdqazcgyuzdorauiq.supabase.co';
-var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzcXpkcWF6Y2d5dXpkb3JhdWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODM0NzcsImV4cCI6MjA5NTU1OTQ3N30.u5cbSVniUl5Zvlf2rdpnjtvDyKvv9csmPwvdtnEwWzE";
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzcXpkcWF6Y2d5dXpkb3JhdWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODM0NzcsImV4cCI6MjA5NTU1OTQ3N30.u5cbSVniUl5Zvlf2rdpnjtvDyKvv9csmPwvdtnEwWzE';
 
 var activeFilter = 'all';
 var allProjekte = [];
@@ -114,19 +129,20 @@ var BRAND_LABELS = {
   autoai: '🤖 AutoAI Tools',
   intern: '🔧 Sonstige / Intern'
 };
-
 var BRAND_ORDER = ['rc','eiswerk','gtue','baudesk','betriebspass','autoai','intern'];
 
 function statusLabel(s) {
-  if (s === 'live')   return '<div class="status status-live"><div class="dot"></div>Live</div>';
-  if (s === 'wip')    return '<div class="status status-wip"><div class="dot"></div>In Arbeit</div>';
-  if (s === 'pause')  return '<div class="status status-pause"><div class="dot"></div>Pausiert</div>';
-  if (s === 'intern') return '<div class="status status-intern"><div class="dot"></div>Intern</div>';
+  if (s==='live')   return '<div class="status status-live"><div class="dot"></div>Live</div>';
+  if (s==='wip')    return '<div class="status status-wip"><div class="dot"></div>In Arbeit</div>';
+  if (s==='pause')  return '<div class="status status-pause"><div class="dot"></div>Pausiert</div>';
+  if (s==='intern') return '<div class="status status-intern"><div class="dot"></div>Intern</div>';
   return '';
 }
 
 function renderCard(p) {
+  var id = p.id;
   var deployUrl = 'https://github.com/uri2503/' + p.repo + '/settings/pages';
+
   var liveBtn = p.live_url
     ? '<a class="link-btn live" href="' + p.live_url + '" target="_blank">↗ Live</a>'
     : '<span class="link-btn disabled">↗ kein Pages</span>';
@@ -134,49 +150,128 @@ function renderCard(p) {
     ? '<a class="link-btn supabase" href="https://supabase.com/dashboard/project/ysqzdqazcgyuzdorauiq/editor" target="_blank">◈ Supabase</a>'
     : '<span class="link-btn disabled">◈ kein Supabase</span>';
   var stripeBtn = p.hat_stripe
-    ? '<a class="link-btn stripe" href="https://dashboard.stripe.com" target="_blank">◇ Stripe ' + (p.stripe_info ? p.stripe_info : '') + '</a>'
+    ? '<a class="link-btn stripe" href="https://dashboard.stripe.com" target="_blank">◇ Stripe ' + (p.stripe_info||'') + '</a>'
     : '<span class="link-btn disabled">◇ kein Stripe</span>';
+
   var tags = '';
   if (p.tags && p.tags.length) {
-    for (var i = 0; i < p.tags.length; i++) {
-      tags += '<span class="tag">' + p.tags[i] + '</span>';
-    }
+    for (var i=0; i<p.tags.length; i++) tags += '<span class="tag">'+p.tags[i]+'</span>';
   }
-  // Extra Links (mehrere HTML-Dateien im Repo)
+
+  // Extra Links als Buttons anzeigen
   var extraLinks = '';
   if (p.extra_links && p.extra_links.length) {
-    for (var j = 0; j < p.extra_links.length; j++) {
+    for (var j=0; j<p.extra_links.length; j++) {
       var el = p.extra_links[j];
-      extraLinks += '<a class="link-btn extra" href="' + el.url + '" target="_blank">⊕ ' + el.label + '</a>';
+      extraLinks += '<a class="link-btn extra" href="'+el.url+'" target="_blank">⊕ '+el.label+'</a>';
     }
   }
-  // Memo
-  var memo = p.memo ? '<div class="card-memo">💬 ' + p.memo + '</div>' : '';
-  return '<div class="card brand-' + p.brand + '" data-brand="' + p.brand + '" data-name="' + (p.name + ' ' + p.repo).toLowerCase() + '">' +
-    '<div class="card-header"><div><div class="card-title">' + p.name + '</div><div class="card-repo">' + p.repo + '</div></div>' + statusLabel(p.status) + '</div>' +
-    (tags ? '<div class="card-tags">' + tags + '</div>' : '') +
-    '<div class="card-links"><a class="link-btn deploy" href="' + deployUrl + '" target="_blank">⬡ Deploy</a>' + liveBtn + supaBtn + stripeBtn + extraLinks + '</div>' +
-    memo +
-    '</div>';
+
+  // Extra Links als Text für Editor (Label|URL pro Zeile)
+  var extraLinksText = '';
+  if (p.extra_links && p.extra_links.length) {
+    for (var k=0; k<p.extra_links.length; k++) {
+      extraLinksText += p.extra_links[k].label + '|' + p.extra_links[k].url + '\n';
+    }
+    extraLinksText = extraLinksText.trim();
+  }
+
+  var memoVal = p.memo || '';
+
+  return '<div class="card brand-'+p.brand+'" data-brand="'+p.brand+'" data-name="'+(p.name+' '+p.repo).toLowerCase()+'" data-id="'+id+'">' +
+    '<div class="card-header"><div><div class="card-title">'+p.name+'</div><div class="card-repo">'+p.repo+'</div></div>'+statusLabel(p.status)+'</div>' +
+    (tags ? '<div class="card-tags">'+tags+'</div>' : '') +
+    '<div class="card-links"><a class="link-btn deploy" href="'+deployUrl+'" target="_blank">⬡ Deploy</a>'+liveBtn+supaBtn+stripeBtn+extraLinks+'</div>' +
+
+    // ── Edit Bereich ──
+    '<div class="edit-section">' +
+
+      '<div class="edit-row">' +
+        '<div class="edit-label">📎 Extra Links <span>Label|URL — eine pro Zeile</span></div>' +
+        '<textarea class="edit-field" rows="2" id="links-'+id+'" placeholder="Admin|https://...\nDashboard|https://...">'+extraLinksText+'</textarea>' +
+      '</div>' +
+
+      '<div class="edit-row">' +
+        '<div class="edit-label">💬 Memo / Notiz</div>' +
+        '<textarea class="edit-field" rows="2" id="memo-'+id+'" placeholder="Offene Punkte, nächster Schritt…">'+memoVal+'</textarea>' +
+      '</div>' +
+
+      '<button class="save-btn" id="save-'+id+'" onclick="saveCard(\''+id+'\')">💾 Speichern</button>' +
+
+    '</div>' +
+  '</div>';
+}
+
+function saveCard(id) {
+  var btn = document.getElementById('save-'+id);
+  var memoEl = document.getElementById('memo-'+id);
+  var linksEl = document.getElementById('links-'+id);
+
+  var memo = memoEl.value.trim();
+
+  // Extra Links parsen: Label|URL
+  var extraLinks = [];
+  var lines = linksEl.value.trim().split('\n');
+  for (var i=0; i<lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var parts = line.split('|');
+    if (parts.length >= 2) {
+      extraLinks.push({ label: parts[0].trim(), url: parts[1].trim() });
+    }
+  }
+
+  btn.textContent = '⏳ Speichern…';
+  btn.className = 'save-btn saving';
+
+  fetch(SUPABASE_URL + '/rest/v1/rc_projekte?id=eq.' + id, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ memo: memo, extra_links: extraLinks })
+  })
+  .then(function(r) {
+    if (r.ok) {
+      btn.textContent = '✅ Gespeichert';
+      btn.className = 'save-btn saved';
+      // Lokale Daten updaten
+      for (var i=0; i<allProjekte.length; i++) {
+        if (allProjekte[i].id === id) {
+          allProjekte[i].memo = memo;
+          allProjekte[i].extra_links = extraLinks;
+        }
+      }
+      setTimeout(function(){ btn.textContent = '💾 Speichern'; btn.className = 'save-btn'; }, 2000);
+    } else {
+      btn.textContent = '❌ Fehler';
+      btn.className = 'save-btn';
+    }
+  })
+  .catch(function() {
+    btn.textContent = '❌ Fehler';
+    btn.className = 'save-btn';
+  });
 }
 
 function renderAll() {
   var container = document.getElementById('container');
   var html = '';
-  for (var b = 0; b < BRAND_ORDER.length; b++) {
+  for (var b=0; b<BRAND_ORDER.length; b++) {
     var brand = BRAND_ORDER[b];
     var projekte = [];
-    for (var i = 0; i < allProjekte.length; i++) {
+    for (var i=0; i<allProjekte.length; i++) {
       if (allProjekte[i].brand === brand) projekte.push(allProjekte[i]);
     }
     if (!projekte.length) continue;
     projekte.sort(function(a,b){ return a.sort_order - b.sort_order; });
-    html += '<div class="section-wrap" data-brand="' + brand + '">';
-    html += '<div class="section-label">' + (BRAND_LABELS[brand] || brand) + '</div>';
+    html += '<div class="section-wrap" data-brand="'+brand+'">';
+    html += '<div class="section-label">'+(BRAND_LABELS[brand]||brand)+'</div>';
     html += '<div class="grid">';
-    for (var j = 0; j < projekte.length; j++) {
-      html += renderCard(projekte[j]);
-    }
+    for (var j=0; j<projekte.length; j++) html += renderCard(projekte[j]);
     html += '</div></div>';
   }
   container.innerHTML = html;
@@ -186,7 +281,7 @@ function renderAll() {
 function setFilter(brand, btn) {
   activeFilter = brand;
   var btns = document.querySelectorAll('.filter-btn');
-  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  for (var i=0; i<btns.length; i++) btns[i].classList.remove('active');
   btn.classList.add('active');
   filterCards();
 }
@@ -196,48 +291,37 @@ function filterCards() {
   var cards = document.querySelectorAll('.card');
   var sections = document.querySelectorAll('.section-wrap');
   var visible = 0;
-
-  for (var i = 0; i < cards.length; i++) {
+  for (var i=0; i<cards.length; i++) {
     var card = cards[i];
-    var brand = card.getAttribute('data-brand');
-    var name = card.getAttribute('data-name') || '';
-    var matchBrand = (activeFilter === 'all') || (brand === activeFilter);
-    var matchSearch = !search || name.indexOf(search) > -1;
+    var matchBrand = (activeFilter==='all') || (card.getAttribute('data-brand')===activeFilter);
+    var matchSearch = !search || (card.getAttribute('data-name')||'').indexOf(search) > -1;
     if (matchBrand && matchSearch) { card.classList.remove('hidden'); visible++; }
     else card.classList.add('hidden');
   }
-
-  for (var j = 0; j < sections.length; j++) {
-    var sec = sections[j];
-    var sb = sec.getAttribute('data-brand');
-    var visibleInSec = sec.querySelectorAll('.card:not(.hidden)').length;
-    sec.classList.toggle('hidden', visibleInSec === 0);
+  for (var j=0; j<sections.length; j++) {
+    sections[j].classList.toggle('hidden', sections[j].querySelectorAll('.card:not(.hidden)').length === 0);
   }
-
   document.getElementById('visibleCount').innerText = visible;
 }
 
 function loadProjekte() {
   fetch(SUPABASE_URL + '/rest/v1/rc_projekte?select=*&order=sort_order.asc', {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY
-    }
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   })
-  .then(function(r) { return r.json().then(function(d){ return {ok: r.ok, status: r.status, data: d}; }); })
-  .then(function(res) { var data = res.data; if(!res.ok){ document.getElementById("container").innerHTML = "<div class=\"error-msg\">API Fehler " + res.status + ": " + JSON.stringify(data) + "</div>"; return; }
-    if (!Array.isArray(data) || data.length === 0) {
-      document.getElementById('container').innerHTML = '<div class="error-msg">Keine Projekte gefunden.</div>';
-      return;
-    }
-    allProjekte = data;
+  .then(function(r) { return r.json().then(function(d){ return {ok:r.ok, status:r.status, data:d}; }); })
+  .then(function(res) {
+    if (!res.ok) { document.getElementById('container').innerHTML = '<div class="error-msg">API Fehler '+res.status+': '+JSON.stringify(res.data)+'</div>'; return; }
+    if (!Array.isArray(res.data) || !res.data.length) { document.getElementById('container').innerHTML = '<div class="error-msg">Keine Projekte gefunden.</div>'; return; }
+    allProjekte = res.data;
     renderAll();
   })
   .catch(function(err) {
-    document.getElementById('container').innerHTML = '<div class="error-msg">Fehler beim Laden: ' + err.message + '</div>';
+    document.getElementById('container').innerHTML = '<div class="error-msg">Fehler: '+err.message+'</div>';
   });
 }
 
+// RLS Update Policy aktivieren
+fetch(SUPABASE_URL + '/rest/v1/', { headers: { 'apikey': SUPABASE_KEY } });
 loadProjekte();
 </script>
 </body>
