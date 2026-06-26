@@ -127,9 +127,26 @@ var BRAND_LABELS = {
   baudesk: '🏗️ BauDesk — MUSA',
   betriebspass: '🛡️ Betriebspass',
   autoai: '🤖 AutoAI Tools',
+  baeckerei: '🥐 Bäckerei',
   intern: '🔧 Sonstige / Intern'
 };
-var BRAND_ORDER = ['rc','eiswerk','gtue','baudesk','betriebspass','autoai','intern'];
+var BRAND_COLORS = {
+  rc: '#c8a96e', eiswerk: '#1a6b8a', gtue: '#E3001B',
+  baudesk: '#2563eb', betriebspass: '#059669', autoai: '#7c3aed',
+  baeckerei: '#d97706', intern: '#444'
+};
+var BRAND_ORDER = ['rc','eiswerk','gtue','baudesk','betriebspass','autoai','baeckerei','intern'];
+
+function getBrandOrder(brands) {
+  var ordered = [];
+  for (var i=0; i<BRAND_ORDER.length; i++) {
+    if (brands.indexOf(BRAND_ORDER[i]) > -1) ordered.push(BRAND_ORDER[i]);
+  }
+  for (var j=0; j<brands.length; j++) {
+    if (ordered.indexOf(brands[j]) === -1) ordered.push(brands[j]);
+  }
+  return ordered;
+}
 
 function statusLabel(s) {
   if (s==='live')   return '<div class="status status-live"><div class="dot"></div>Live</div>';
@@ -178,13 +195,30 @@ function renderCard(p) {
 
   var memoVal = p.memo || '';
 
-  return '<div class="card brand-'+p.brand+'" data-brand="'+p.brand+'" data-name="'+(p.name+' '+p.repo).toLowerCase()+'" data-id="'+id+'">' +
+  var brandColor = BRAND_COLORS[p.brand] || '#666';
+  return '<div class="card" style="border-left:3px solid '+brandColor+'" data-brand="'+p.brand+'" data-name="'+(p.name+' '+p.repo).toLowerCase()+'" data-id="'+id+'">' +
     '<div class="card-header"><div><div class="card-title">'+p.name+'</div><div class="card-repo">'+p.repo+'</div></div>'+statusLabel(p.status)+'</div>' +
     (tags ? '<div class="card-tags">'+tags+'</div>' : '') +
     '<div class="card-links"><a class="link-btn deploy" href="'+deployUrl+'" target="_blank">⬡ Deploy</a>'+liveBtn+supaBtn+stripeBtn+extraLinks+'</div>' +
 
     // ── Edit Bereich ──
     '<div class="edit-section">' +
+
+      '<div class="edit-row" style="display:flex;gap:8px;margin-bottom:8px;">' +
+        '<div style="flex:1">' +
+          '<div class="edit-label">🏷 Gruppe / Brand</div>' +
+          '<input class="edit-field" id="brand-'+id+'" value="'+p.brand+'" placeholder="z.B. baeckerei, gtue, rc…" style="padding:5px 8px;">' +
+        '</div>' +
+        '<div style="width:100px">' +
+          '<div class="edit-label">📊 Status</div>' +
+          '<select class="edit-field" id="status-'+id+'" style="padding:5px 4px;">' +
+            '<option value="live"'+(p.status==='live'?' selected':'')+'>🟢 Live</option>' +
+            '<option value="wip"'+(p.status==='wip'?' selected':'')+'>🟡 In Arbeit</option>' +
+            '<option value="pause"'+(p.status==='pause'?' selected':'')+'>🔴 Pausiert</option>' +
+            '<option value="intern"'+(p.status==='intern'?' selected':'')+'>🔵 Intern</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
 
       '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">' +
         '<div style="flex:1">' +
@@ -213,9 +247,13 @@ function saveCard(id) {
   var memoEl = document.getElementById('memo-'+id);
   var linksEl = document.getElementById('links-'+id);
   var sortEl = document.getElementById('sort-'+id);
+  var brandEl = document.getElementById('brand-'+id);
+  var statusEl = document.getElementById('status-'+id);
 
   var memo = memoEl.value.trim();
   var sortOrder = sortEl ? parseInt(sortEl.value) || 99 : 99;
+  var brand = brandEl ? brandEl.value.trim().toLowerCase() : null;
+  var status = statusEl ? statusEl.value : null;
 
   // Extra Links parsen: Label|URL
   var extraLinks = [];
@@ -240,7 +278,7 @@ function saveCard(id) {
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify({ memo: memo, extra_links: extraLinks, sort_order: sortOrder })
+    body: JSON.stringify({ memo: memo, extra_links: extraLinks, sort_order: sortOrder, brand: brand, status: status })
   })
   .then(function(r) {
     if (r.ok) {
@@ -252,9 +290,11 @@ function saveCard(id) {
           allProjekte[i].memo = memo;
           allProjekte[i].extra_links = extraLinks;
           allProjekte[i].sort_order = sortOrder;
+          if (brand) allProjekte[i].brand = brand;
+          if (status) allProjekte[i].status = status;
         }
       }
-      setTimeout(function(){ btn.textContent = '💾 Speichern'; btn.className = 'save-btn'; }, 2000);
+      setTimeout(function(){ btn.textContent = '💾 Speichern'; btn.className = 'save-btn'; renderAll(); }, 1500);
     } else {
       btn.textContent = '❌ Fehler';
       btn.className = 'save-btn';
@@ -268,17 +308,36 @@ function saveCard(id) {
 
 function renderAll() {
   var container = document.getElementById('container');
+  // Alle vorhandenen Brands sammeln
+  var allBrands = [];
+  for (var x=0; x<allProjekte.length; x++) {
+    var b = allProjekte[x].brand;
+    if (allBrands.indexOf(b) === -1) allBrands.push(b);
+  }
+  var orderedBrands = getBrandOrder(allBrands);
+
+  // Filterbuttons dynamisch neu aufbauen
+  var filterBar = document.getElementById('filterBar');
+  var btns = '<button class="filter-btn '+(activeFilter==='all'?'active':'')+'" onclick="setFilter(\'all\',this)">Alle</button>';
+  for (var f=0; f<orderedBrands.length; f++) {
+    var fb = orderedBrands[f];
+    var label = BRAND_LABELS[fb] ? BRAND_LABELS[fb].replace(/^[^ ]+ /,'') : fb.charAt(0).toUpperCase()+fb.slice(1);
+    btns += '<button class="filter-btn '+(activeFilter===fb?'active':'')+'" onclick="setFilter(\''+fb+'\',this)">'+label+'</button>';
+  }
+  filterBar.innerHTML = btns;
+
   var html = '';
-  for (var b=0; b<BRAND_ORDER.length; b++) {
-    var brand = BRAND_ORDER[b];
+  for (var b=0; b<orderedBrands.length; b++) {
+    var brand = orderedBrands[b];
     var projekte = [];
     for (var i=0; i<allProjekte.length; i++) {
       if (allProjekte[i].brand === brand) projekte.push(allProjekte[i]);
     }
     if (!projekte.length) continue;
-    projekte.sort(function(a,b){ return a.sort_order - b.sort_order; });
+    projekte.sort(function(a,bb){ return (a.sort_order||99) - (bb.sort_order||99); });
+    var color = BRAND_COLORS[brand] || '#666';
     html += '<div class="section-wrap" data-brand="'+brand+'">';
-    html += '<div class="section-label">'+(BRAND_LABELS[brand]||brand)+'</div>';
+    html += '<div class="section-label" style="border-bottom-color:'+color+'22;">'+(BRAND_LABELS[brand]||'📁 '+brand.charAt(0).toUpperCase()+brand.slice(1))+'</div>';
     html += '<div class="grid">';
     for (var j=0; j<projekte.length; j++) html += renderCard(projekte[j]);
     html += '</div></div>';
