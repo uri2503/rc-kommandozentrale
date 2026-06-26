@@ -92,7 +92,7 @@
 
 <header>
   <div class="logo">RC <span>Kommandozentrale</span></div>
-  <div class="filter-bar">
+  <div class="filter-bar" id="filterBar">
     <button class="filter-btn active" onclick="setFilter('all',this)">Alle</button>
     <button class="filter-btn" onclick="setFilter('rc',this)">RC</button>
     <button class="filter-btn" onclick="setFilter('eiswerk',this)">Eiswerk</button>
@@ -318,6 +318,7 @@ function renderAll() {
 
   // Filterbuttons dynamisch neu aufbauen
   var filterBar = document.getElementById('filterBar');
+  if (!filterBar) return;
   var btns = '<button class="filter-btn '+(activeFilter==='all'?'active':'')+'" onclick="setFilter(\'all\',this)">Alle</button>';
   for (var f=0; f<orderedBrands.length; f++) {
     var fb = orderedBrands[f];
